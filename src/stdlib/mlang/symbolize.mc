@@ -75,21 +75,25 @@ lang DeclLetSym = DeclSym + LetDeclAst + LetSym
   | DeclLet t ->
     match symbolizeTyAnnot env t.tyAnnot with (tyVarEnv, tyAnnot) in
     match setSymbol env.currentEnv.varEnv t.ident with (varEnv, ident) in
+    let env = symbolizeUpdateVarEnv env varEnv in
+    let env = symbolizeUpdateTyVarEnv env tyVarEnv in
     let decl = DeclLet {t with ident = ident,
                         tyAnnot = tyAnnot,
-                        body = symbolizeExpr (symbolizeUpdateTyVarEnv env tyVarEnv) t.body} in
-    (symbolizeUpdateVarEnv env varEnv, decl)
+                        body = symbolizeExpr env t.body} in
+    (env, decl)
 end
 
 lang DeclTypeSym = DeclSym + TypeDeclAst
   sem symbolizeDecl env =
   | DeclType t ->
     match setSymbol env.currentEnv.tyConEnv t.ident with (tyConEnv, ident) in
+    let env = symbolizeUpdateTyConEnv env tyConEnv in
     match mapAccumL setSymbol env.currentEnv.tyVarEnv t.params with (tyVarEnv, params) in
     let decl = DeclType {t with ident = ident,
                                 params = params,
                                 tyIdent = symbolizeType (symbolizeUpdateTyVarEnv env tyVarEnv) t.tyIdent} in
-    (symbolizeUpdateTyConEnv env tyConEnv, decl)
+    let env = symbolizeUpdateTyVarEnv env tyVarEnv in
+    (env, decl)
 end
 
 
@@ -149,8 +153,135 @@ lang DeclExtSym = DeclSym + ExtDeclAst
       (env, decl)
 end
 
-lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
-                   SynDeclAst + LetSym
+lang DeclSynSym = DeclSym + SynDeclAst
+  sem symbolizeSynStep1 env langEnv =
+  | DeclSyn s ->
+    let env = updateEnv env langEnv in
+
+    let ident = nameSym (nameGetStr s.ident) in
+      match mapAccumL setSymbol env.currentEnv.tyVarEnv s.params with (_, params) in
+
+      let synn = DeclSyn {s with params = params,
+                                  ident = ident} in
+
+      let tyConEnv = if eqi 0 (length s.includes) then
+        mapInsert (nameGetStr ident) ident langEnv.tyConEnv
+      else
+        langEnv.tyConEnv
+      in
+
+      ({langEnv with tyConEnv = tyConEnv}, synn)
+
+  sem symbolizeDef ignoreTyName
+                   env
+                   (synIdent : Name)
+                   (params : [Name])
+                   (langEnv : NameEnv) =
+  | def ->
+    match setSymbol langEnv.conEnv def.ident with (conEnv, ident) in
+
+    match (if ignoreTyName
+           then (langEnv.tyConEnv, def.tyName)
+           else setSymbol langEnv.tyConEnv def.tyName)
+    with (tyConEnv, tyName) in
+
+    let langEnv = {langEnv with conEnv = conEnv,
+                                tyConEnv = tyConEnv} in
+    let env = updateEnv env langEnv in
+
+    -- Add syn params and syn idents to tyVarEnv
+    let paramPairs = map (lam p. (nameGetStr p, p)) params in
+    let paramMap = mapFromSeq cmpString paramPairs in
+
+    let m = mapUnion env.currentEnv.tyVarEnv paramMap in
+    let env = symbolizeUpdateTyVarEnv env m in
+
+    let tyIdent = symbolizeType env def.tyIdent in
+
+    (langEnv, {ident = ident, tyIdent = tyIdent, tyName = tyName})
+
+  sem symbolizeSynStep2 env langEnv =
+  | DeclSyn s ->
+    let symbDef = symbolizeDef false env s.ident s.params in
+    match mapAccumL symbDef langEnv s.defs with (langEnv, defs) in
+    let decl = DeclSyn {s with defs = defs} in
+    (langEnv, decl)
+end
+
+lang DeclSemSym = DeclSym + SemDeclAst + LetSym
+  -- Assign names to semantic functions
+  sem symbolizeSemStep1 env langEnv =
+  | DeclSem s ->
+    match setSymbol langEnv.varEnv s.ident with (varEnv, ident) in
+
+    let langEnv = {langEnv with varEnv = varEnv} in
+    let decl = DeclSem {s with ident = ident} in
+
+    (langEnv, decl)
+
+  -- 5. Assign names to semantic bodies, params, and types
+  sem symbolizeSemStep2 env langEnv =
+  | DeclSem s ->
+    let env = updateEnv env langEnv in
+
+    match symbolizeTyAnnot env s.tyAnnot with (tyVarEnv, tyAnnot) in
+    let env = symbolizeUpdateTyVarEnv env tyVarEnv in
+
+    let symbArgTy = lam env : SymEnv. lam arg : {ident : Name, tyAnnot : Type}.
+        match setSymbol env.currentEnv.varEnv arg.ident with (varEnv, ident) in
+        let env = symbolizeUpdateVarEnv env varEnv in
+
+        match symbolizeTyAnnot env arg.tyAnnot with (tyVarEnv, tyAnnot) in
+        let env = symbolizeUpdateTyVarEnv env tyVarEnv in
+
+        (env, {ident = ident, tyAnnot = tyAnnot})
+    in
+    let result = match optionMap (lam a. mapAccumL symbArgTy env a) s.args with Some (env, args)
+                  then (env, Some args) else (env, None ()) in
+    match result with (env, args) in
+
+
+    let symbCases = lam cas : {pat : Pat, thn : Expr}.
+        match symbolizePat env (mapEmpty cmpString) cas.pat with (thnVarEnv, pat) in
+        let varEnv = mapUnion env.currentEnv.varEnv thnVarEnv in
+        let thn = symbolizeExpr (symbolizeUpdateVarEnv env varEnv) cas.thn in
+        {pat = pat, thn = thn}
+    in
+    let cases = map symbCases s.cases in
+
+    DeclSem {s with cases = cases,
+                    tyAnnot = tyAnnot,
+                    args = args}
+end
+
+lang InnerDeclTypeSym = DeclSym + TypeDeclAst
+  sem symbolizeDeclType env langEnv =
+  | DeclType t ->
+    match setSymbol langEnv.tyConEnv t.ident with (tyConEnv, ident) in
+
+    -- Symbolize parameters
+    let env = updateEnv env langEnv in
+    match mapAccumL setSymbol env.currentEnv.tyVarEnv t.params with (tyVarEnv, params) in
+
+    -- Symbolize type annotation
+    let tyAnnot = symbolizeType (symbolizeUpdateTyVarEnv env tyVarEnv) t.tyIdent in
+
+    let decl = DeclType {t with ident = ident,
+                                tyIdent = tyAnnot,
+                                params = params} in
+
+    let langEnv = {langEnv with tyConEnv = tyConEnv} in
+
+    (langEnv, decl)
+end
+
+lang DeclMLangLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
+                        SynDeclAst + LetSym +
+                        DeclSynSym +
+                        InnerDeclTypeSym + DeclSemSym
+  -- TODO(25-09-2024, voorberg): A bunch of symbols are created manually
+  -- through `nameSym`. These should probably be replaced with calls to
+  -- `setSymbol` to detect duplicates and provide standardized error messages.
   sem symbolizeDecl env =
   | DeclLang t ->
     -- Symbolize the name of the language
@@ -180,133 +311,19 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let isTypeDecl = lam d. match d with DeclType _ then true else false in
     let typeDecls = filter isTypeDecl t.decls in
 
-    -- 1. Symbolize ident and params of SynDecls in this langauge
-    let symbSynStep1 = lam langEnv : NameEnv. lam synDecl.
-      match synDecl with DeclSyn s in
-      let env = updateEnv env langEnv in
+    match mapAccumL (symbolizeSynStep1 env) langEnv synDecls
+    with (langEnv, synDecls) in
 
-      let ident = nameSym (nameGetStr s.ident) in
-      match mapAccumL setSymbol env.currentEnv.tyVarEnv s.params with (_, params) in
+    match mapAccumL (symbolizeDeclType env) langEnv typeDecls
+    with (langEnv, typeDecls) in
 
-      let synn = DeclSyn {s with params = params,
-                                  ident = ident} in
+    match mapAccumL (symbolizeSynStep2 env) langEnv synDecls
+    with (langEnv, synDecls) in
 
-      let tyConEnv = if eqi 0 (length s.includes) then
-        mapInsert (nameGetStr ident) ident langEnv.tyConEnv
-      else
-        langEnv.tyConEnv
-      in
+    match mapAccumL (symbolizeSemStep1 env) langEnv semDecls
+    with (langEnv, semDecls) in
 
-      ({langEnv with tyConEnv = tyConEnv}, synn)
-    in
-    match mapAccumL symbSynStep1 langEnv synDecls with (langEnv, synDecls) in
-
-    -- 2. Symbolize DeclType, params, and body.
-    let symbDeclType = lam langEnv : NameEnv. lam typeDecl.
-      match typeDecl with DeclType t in
-
-      -- Symbolize ident
-      let ident = nameSym (nameGetStr t.ident) in
-
-      -- -- Check for name conflicts with syns and other types.
-      -- -- Throw an error if DeclType is included with the same identifier
-      -- errorOnNameConflict includedTypes ident langIdent t.info ;
-      -- -- Throw an error if a DeclSyn is  or defined with the same identifier
-      -- errorOnNameConflict langEnv.syns ident langIdent t.info ;
-
-      -- Symbolize parameters
-      let env = updateEnv env langEnv in
-      match mapAccumL setSymbol env.currentEnv.tyVarEnv t.params with (tyVarEnv, params) in
-
-      -- Symbolize type annotation
-      let tyAnnot = symbolizeType (symbolizeUpdateTyVarEnv env tyVarEnv) t.tyIdent in
-
-      let decl = DeclType {t with ident = ident,
-                                  tyIdent = tyAnnot,
-                                  params = params} in
-
-      let langEnv = {langEnv with tyConEnv = mapInsert (nameGetStr t.ident) ident langEnv.tyConEnv} in
-
-      (langEnv, decl)
-    in
-    match mapAccumL symbDeclType langEnv typeDecls with (langEnv, typeDecls) in
-
-    -- 3. Symbolize syntax constructors (add defs to conEnv)
-    let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type}.
-      match setSymbol langEnv.conEnv def.ident with (conEnv, ident) in
-      let langEnv = {langEnv with conEnv = conEnv} in
-
-      let env = updateEnv env langEnv in
-
-      -- Add syn params and syn idents to tyVarEnv
-      let paramPairs = map (lam p. (nameGetStr p, p)) params in
-      let paramMap = mapFromSeq cmpString paramPairs in
-
-      let m = mapUnion env.currentEnv.tyVarEnv paramMap in
-      let env = symbolizeUpdateTyVarEnv env m in
-
-      let tyIdent = symbolizeType env def.tyIdent in
-
-      (langEnv, {ident = ident, tyIdent = tyIdent})
-    in
-    let symbSynConstructors = lam langEnv. lam synDecl.
-      match synDecl with DeclSyn s in
-      match mapAccumL (symbDef s.params) langEnv s.defs with (langEnv, defs) in
-      let decl = DeclSyn {s with defs = defs} in
-      (langEnv, decl)
-    in
-    match mapAccumL symbSynConstructors langEnv synDecls with (langEnv, synDecls) in
-
-    -- 4. Assign names to semantic functions
-    let symbSem = lam langEnv : NameEnv. lam declSem.
-      match declSem with DeclSem s in
-      match setSymbol langEnv.varEnv s.ident with (varEnv, ident) in
-
-      let langEnv = {langEnv with varEnv = varEnv} in
-      let decl = DeclSem {s with ident = ident} in
-
-      (langEnv, decl)
-    in
-    match mapAccumL symbSem langEnv semDecls with (langEnv, semDecls) in
-
-    -- 5. Assign names to semantic bodies, params, and types
-    let symbSem2 = lam langEnv : NameEnv. lam declSem.
-      match declSem with DeclSem s in
-
-      let env = updateEnv env langEnv in
-
-      match symbolizeTyAnnot env s.tyAnnot with (tyVarEnv, tyAnnot) in
-      let env = symbolizeUpdateTyVarEnv env tyVarEnv in
-
-      let symbArgTy = lam env : SymEnv. lam arg : {ident : Name, tyAnnot : Type}.
-          match setSymbol env.currentEnv.varEnv arg.ident with (varEnv, ident) in
-          let env = symbolizeUpdateVarEnv env varEnv in
-
-          match symbolizeTyAnnot env arg.tyAnnot with (tyVarEnv, tyAnnot) in
-          let env = symbolizeUpdateTyVarEnv env tyVarEnv in
-
-          (env, {ident = ident, tyAnnot = tyAnnot})
-      in
-      let result = match optionMap (lam a. mapAccumL symbArgTy env a) s.args with Some (env, args)
-                    then (env, Some args) else (env, None ()) in
-      match result with (env, args) in
-
-
-      let symbCases = lam cas : {pat : Pat, thn : Expr}.
-          match symbolizePat env (mapEmpty cmpString) cas.pat with (thnVarEnv, pat) in
-          let varEnv = mapUnion env.currentEnv.varEnv thnVarEnv in
-          let thn = symbolizeExpr (symbolizeUpdateVarEnv env varEnv) cas.thn in
-          {pat = pat, thn = thn}
-      in
-      let cases = map symbCases s.cases in
-
-      let decl = DeclSem {s with cases = cases,
-                                  tyAnnot = tyAnnot,
-                                  args = args} in
-
-      decl
-    in
-    let semDecls = map (symbSem2 langEnv) semDecls in
+    let semDecls = map (symbolizeSemStep2 env langEnv) semDecls in
 
     let env = {env with langEnv = mapInsert (nameGetStr t.ident) langEnv env.langEnv} in
     let t = {t with decls = join [typeDecls, synDecls, semDecls],
@@ -327,14 +344,17 @@ lang MLangProgramSym = MLangTopLevel + DeclSym
     })
 end
 
-lang MLangSym = MLangAst + MExprSym +
-                TmUseSym + TyUseSym +
-                DeclLetSym + DeclTypeSym + DeclRecLetsSym +
-                DeclConDefSym + DeclUtestSym + DeclExtSym +
-                DeclLangSym + MLangProgramSym
+lang MLangSymWihoutLang = MLangAst + MExprSym +
+                          TmUseSym + TyUseSym +
+                          DeclLetSym + DeclTypeSym + DeclRecLetsSym +
+                          DeclConDefSym + DeclUtestSym + DeclExtSym +
+                          MLangProgramSym
 end
 
-lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
+lang MLangSym = MLangSymWihoutLang + DeclMLangLangSym
+end
+
+lang TestLangWithoutLang = MLangSymWihoutLang + SymCheck + MLangPrettyPrint
   sem isFullySymbolizedExpr =
   | TmUse t ->
     error "Symbolization should get rid of all occurrences of TmUse!"
@@ -382,6 +402,7 @@ lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
 
   sem isFullySymbolizedType =
   | TyUse _ -> error "Symbolization should get rid of TyUse!"
+  -- | TyQualifiedName _ -> error "Symbolization should get rid of TyQualifiedName!"
 
   sem isFullySymbolizedProgram : MLangProgram -> () -> Bool
   sem isFullySymbolizedProgram =
@@ -389,6 +410,9 @@ lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
     _and
       (isFullySymbolizedExpr prog.expr)
       (foldl (_andFold isFullySymbolizedDecl) (lam. true) prog.decls)
+end
+
+lang TestLang = TestLangWithoutLang + DeclMLangLangSym
 end
 
 let synDeclIdentHasSymbolized = lam decl.

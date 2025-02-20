@@ -101,6 +101,8 @@ let builtin = use MExprAst in
   , ("ref", CRef ())
   , ("deref", CDeRef ())
   , ("modref", CModRef ())
+  -- Type operations
+  , ("debug_typeof", CTypeOf ())
   -- Tensors
   , ("tensorCreateUninitInt", CTensorCreateUninitInt ())
   , ("tensorCreateUninitFloat", CTensorCreateUninitFloat ())
@@ -137,6 +139,7 @@ let builtin = use MExprAst in
   , ("bootParserGetListLength", CBootParserGetListLength ())
   , ("bootParserGetConst", CBootParserGetConst ())
   , ("bootParserGetPat", CBootParserGetPat ())
+  , ("bootParserGetCopat", CBootParserGetCopat ())
   , ("bootParserGetInfo", CBootParserGetInfo ())
   ]
 

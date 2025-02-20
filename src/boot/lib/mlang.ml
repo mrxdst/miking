@@ -766,10 +766,34 @@ let rec translate_tm (env : mlang_env) : tm -> tm = function
       let tm = smap_tm_ty (translate_ty env) tm in
       let tm = smap_tm_tm (translate_tm env) tm in
       tm
+  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecExtend _) as t ->
+      raise_error (tm_info t)
+        "Extensible record type translation is unsupported by boot!"
 
 let add_decl_to_lang (lang_fi : info) (lang_name : ustring) (data : lang_data)
     : decl -> lang_data = function
-  | Data (fi, name, param_count, constructors) ->
+  (* | DataProdExt (fi, name, param_count, constructors, ty) ->  *)
+  | Cosyn (fi, _, _, _, _) ->
+      raise_error fi
+        ("Cosyn definitions are not supported by this version of " ^ "Miking.")
+  | Cosem (fi, _, _, _, _, _) ->
+      raise_error fi
+        ("Cosem definitions are not supported by this version of " ^ "Miking.")
+  | DataProdExt (fi, _, _, _, _) ->
+      raise_error fi
+        ( "Product extension is not supported by this version of "
+        ^ "Miking. You can use the experimental--mlang-pipeline"
+        ^ "flag to enable this feature." )
+  | Data (fi, name, param_count, constructors, kind) ->
+      ( match kind with
+      | Base ->
+          ()
+      | SumExt ->
+          raise_error fi
+            ( "Explicit Sum extension through '+=' is not "
+            ^ "supported in this version. You can use"
+            ^ "either use '=' or use the experimental "
+            ^ "flag --mlang-pipeline to enable this " ^ "feature" ) ) ;
       let syn =
         match Record.find_opt name data.types with
         | Some (Right syn) ->
@@ -808,7 +832,16 @@ let add_decl_to_lang (lang_fi : info) (lang_name : ustring) (data : lang_data)
         {syn with cons= List.fold_left add_con syn.cons constructors}
       in
       {data with types= Record.add name (Either.Right syn) data.types}
-  | Inter (fi, name, ty, params, cases) ->
+  | Inter (fi, name, ty, params, cases, kind) ->
+      ( match kind with
+      | Base ->
+          ()
+      | SumExt ->
+          raise_error fi
+            ( "Explicit sum extension through '+=' is not "
+            ^ "supported in this version. You can use"
+            ^ "either use '=' or use the experimental "
+            ^ "flag --mlang-pipeline to enable this " ^ "feature" ) ) ;
       let sem =
         match Record.find_opt name data.values with
         | Some sem ->

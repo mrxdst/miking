@@ -23,6 +23,10 @@ include "stringid.mc"
 include "mexpr/ast.mc"
 include "mexpr/info.mc"
 
+type DeclKind
+con BaseKind : () -> DeclKind
+con SumExtKind : () -> DeclKind
+
 -- TmUse --
 lang UseAst = Ast
   syn Expr =
@@ -75,6 +79,8 @@ lang DeclAst = Ast
   sem smapAccumL_Decl_Expr f acc = | d -> (acc, d)
   sem smapAccumL_Decl_Type : all acc. (acc -> Type -> (acc, Type)) -> acc -> Decl -> (acc, Decl)
   sem smapAccumL_Decl_Type f acc = | d -> (acc, d)
+  sem smapAccumL_Decl_Pat : all acc. (acc -> Pat -> (acc, Pat)) -> acc -> Decl -> (acc, Decl)
+  sem smapAccumL_Decl_Pat f acc = | d -> (acc, d)
 
   sem smap_Decl_Decl : (Decl -> Decl) -> Decl -> Decl
   sem smap_Decl_Decl f = | d -> (smapAccumL_Decl_Decl (lam. lam a. ((), f a)) () d).1
@@ -93,6 +99,12 @@ lang DeclAst = Ast
 
   sem sfold_Decl_Type : all acc. (acc -> Type -> acc) -> acc -> Decl -> acc
   sem sfold_Decl_Type f acc = | d -> (smapAccumL_Decl_Type (lam acc. lam a. (f acc a, a)) acc d).0
+
+  sem smap_Decl_Pat : (Pat -> Pat) -> Decl -> Decl
+  sem smap_Decl_Pat f = | d -> (smapAccumL_Decl_Pat (lam. lam a. ((), f a)) () d).1
+
+  sem sfold_Decl_Pat : all acc. (acc -> Pat -> acc) -> acc -> Decl -> acc
+  sem sfold_Decl_Pat f acc = | d -> (smapAccumL_Decl_Pat (lam acc. lam a. (f acc a, a)) acc d).0
 end
 
 -- TODO(vipa, 2024-11-26): This enables working more or less as though
@@ -131,12 +143,13 @@ lang SynDeclAst = DeclAst
   syn Decl =
   | DeclSyn {ident : Name,
              params : [Name],
-             defs : [{ident : Name, tyIdent : Type}],
+             defs : [{ident : Name, tyIdent : Type, tyName : Name}],
              -- The list of syns whose constructors should be included.
              -- The first string identifies the langauge of the include
              -- and the second string identifies the name.
              includes : [(String, String)],
-             info : Info}
+             info : Info,
+             declKind : DeclKind}
 
   sem infoDecl =
   | DeclSyn d -> d.info
@@ -179,17 +192,19 @@ lang SynProdExtDeclAst = DeclAst
 end
 -- DeclSem --
 lang SemDeclAst = DeclAst
+  type DeclSemType = {ident : Name,
+                      tyAnnot : Type,
+                      tyBody : Type,
+                      args : Option [{ident : Name, tyAnnot : Type}],
+                      cases : [{pat : Pat, thn : Expr}],
+                      -- The list of semantic function s whose cases should be included.
+                      -- The first string identifies the langauge of the include
+                      -- and the second string identifies the name.
+                      includes : [(String, String)],
+                      info : Info,
+                      declKind : DeclKind}
   syn Decl =
-  | DeclSem {ident : Name,
-             tyAnnot : Type,
-             tyBody : Type,
-             args : Option [{ident : Name, tyAnnot : Type}],
-             cases : [{pat : Pat, thn : Expr}],
-             -- The list of semantic function s whose cases should be included.
-             -- The first string identifies the langauge of the include
-             -- and the second string identifies the name.
-             includes : [(String, String)],
-             info : Info}
+  | DeclSem DeclSemType
 
   sem infoDecl =
   | DeclSem d -> d.info
@@ -212,6 +227,14 @@ lang SemDeclAst = DeclAst
     let fcase = lam acc. lam c.
       match f acc c.thn with (acc, thn) in
       (acc, {c with thn = thn}) in
+    match mapAccumL fcase acc x.cases with (acc, cases) in
+    (acc, DeclSem {x with cases = cases})
+
+  sem smapAccumL_Decl_Pat f acc =
+  | DeclSem x ->
+    let fcase = lam acc. lam c.
+      match f acc c.pat with (acc, pat) in
+      (acc, {c with pat = pat}) in
     match mapAccumL fcase acc x.cases with (acc, cases) in
     (acc, DeclSem {x with cases = cases})
 end
@@ -403,7 +426,11 @@ lang UtestDeclAst = DeclAst
     match f acc x.test with (acc, test) in
     match f acc x.expected with (acc, expected) in
     match optionMapAccum f acc x.tusing with (acc, tusing) in
-    (acc, DeclUtest {x with test = test, expected = expected, tusing = tusing})
+    match optionMapAccum f acc x.tonfail with (acc, tonfail) in
+    (acc, DeclUtest {x with test = test,
+                            expected = expected,
+                            tusing = tusing,
+                            tonfail = tonfail})
 end
 
 lang UtestAsDecl = ExprAsDecl + UtestAst + UtestDeclAst
@@ -476,12 +503,32 @@ lang IncludeDeclAst = DeclAst
   | DeclInclude d -> DeclInclude {d with info = info}
 end
 
-
 lang MLangTopLevel = DeclAst
   type MLangProgram = {
     decls : [Decl],
     expr : Expr
   }
+
+  sem countProgNodes : MLangProgram -> Int
+  sem countProgNodes =
+  | prog ->
+    let count = foldl countDeclNodes 0 prog.decls in
+    countExprNodes count prog.expr
+
+  -- Todo: Extend to also look at patterns.
+  sem countDeclNodes count =
+  | decl ->
+    let count = addi count 1 in
+    let count = sfold_Decl_Decl countDeclNodes count decl in
+    let count = sfold_Decl_Type countTypeNodes count decl in
+    let count = sfold_Decl_Expr countExprNodes count decl in
+    count
+
+  sem smap_Prog_Decl : all acc. (acc -> Decl -> (acc, Decl)) -> acc -> MLangProgram -> (acc, MLangProgram)
+  sem smap_Prog_Decl f acc =
+  | prog ->
+    match mapAccumL f acc prog.decls with (acc, decls) in
+    (acc, {prog with decls = decls})
 end
 
 
@@ -496,8 +543,7 @@ lang MLangAst =
   -- Declarations
   + LangDeclAst + SynDeclAst + SemDeclAst + LetDeclAst + TypeDeclAst
   + RecLetsDeclAst + DataDeclAst + UtestDeclAst + ExtDeclAst + IncludeDeclAst
-  + TyUseAst + SynProdExtDeclAst
-
+  + TyUseAst
 end
 
 lang MExprAsDecl

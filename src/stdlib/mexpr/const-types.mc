@@ -231,6 +231,11 @@ lang ConTagTypeAst = TyConst + ConTagAst
   | CConstructorTag _ -> mktyall_ "a" (lam a. tyarrow_ a tyint_)
 end
 
+lang TypeOpTypeAst = TyConst + TypeOpAst
+  sem tyConstBase d =
+  | CTypeOf _ -> mktyall_ "a" (lam a. tyarrow_ a tystr_)
+end
+
 lang TensorOpTypeAst = TyConst + TensorOpAst
   sem tyConstBase d =
   | CTensorCreateUninitInt _ -> tytensorcreateuninitint_
@@ -295,6 +300,7 @@ lang BootParserTypeAst = TyConst + BootParserAst
   | CBootParserGetListLength _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, tyint_])
   | CBootParserGetConst _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
   | CBootParserGetPat _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
+  | CBootParserGetCopat _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
   | CBootParserGetInfo _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
 end
 
@@ -304,5 +310,5 @@ lang MExprConstType =
   SymbTypeAst + CmpSymbTypeAst + SeqOpTypeAst + FileOpTypeAst + IOTypeAst +
   RandomNumberGeneratorTypeAst + SysTypeAst + FloatIntConversionTypeAst +
   FloatStringConversionTypeAst + TimeTypeAst + RefOpTypeAst + ConTagTypeAst +
-  TensorOpTypeAst + BootParserTypeAst + UnsafeCoerceTypeAst
+  TensorOpTypeAst + BootParserTypeAst + UnsafeCoerceTypeAst + TypeOpTypeAst
 end

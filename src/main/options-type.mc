@@ -35,5 +35,7 @@ type Options = {
   disableJsTCO : Bool,
   output : Option String,
   tuneOptions : TuneOptions,
-  mlangPipeline : Bool
+  mlangPipeline : Bool,
+  experimentalRecords : Bool,
+  disableStrictSumExtension : Bool
 }

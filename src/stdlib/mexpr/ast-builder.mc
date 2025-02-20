@@ -8,6 +8,9 @@ include "error.mc"
 include "stringid.mc"
 include "map.mc"
 
+-- Info
+let noinfo_ = NoInfo ()
+
 -- Types --
 
 let ityint_ = use IntTypeAst in
@@ -119,6 +122,11 @@ let ntycon_ = lam n.
 
 let tycon_ = lam s.
   ntycon_ (nameNoSym s)
+
+let intyvar_ = use VarTypeAst in
+  lam i. lam n.
+    TyVar {ident = n,
+           info = i}
 
 let ntyvar_ = use VarTypeAst in
   lam n.
@@ -347,7 +355,8 @@ let pnot_ = use MExprAst in
 -- Terms --
 -- Methods of binding an expression into a chain of lets/reclets/condefs --
 
-recursive let bindF_ = use MExprAst in
+recursive let bindF_ = 
+  use MExprAst in
   lam f : Expr -> Expr -> Expr. lam letexpr. lam expr.
   match letexpr with TmLet t then
     TmLet {t with inexpr = bindF_ f t.inexpr expr}
@@ -651,6 +660,9 @@ let record2tuple
 
 let never_ = use MExprAst in
   TmNever {ty = tyunknown_, info = NoInfo ()}
+
+let inever_ = use MExprAst in 
+  lam i : Info. TmNever {ty = tyunknown_, info = i}
 
 -- Exhaustive match
 let matchex_ = use MExprAst in
