@@ -8,6 +8,11 @@ declare -A util_vars=(
   [is_cheated]=0
   [is_installed]=0
   [non_interactive]=0
+  # NOTE(wmuth, 2025-04-03):
+  # Using "0" as a sentinel for don't use threads instead of 1 since a user could
+  # have set their own value using env vars or aliases so we don't always
+  # want to overwrite the value with e.g. a default of "1"
+  [num_threads]="0"
   [use_tup]=0
 )
 
@@ -21,9 +26,15 @@ util_set_vars() {
       "--bootstrapped") util_vars[bootstrapped]=1; clean_args+=("$arg") ;;
       "--cheated") util_vars[cheated]=1; clean_args+=("$arg") ;;
       "--installed") util_vars[installed]=1; clean_args+=("$arg") ;;
+      "-j") util_set_threads ;;
       "--non-interactive") util_vars[non_interactive]=1 ;;
       "--use-make") use_make=1 ;;
-      *) clean_args+=("$arg") ;;
+      *)
+        if [[ "$arg" =~ ^-j[0-9]+$ ]]; then
+          util_vars[num_threads]=${arg#-j}
+        else
+          clean_args+=("$arg")
+        fi ;;
     esac
   done
 
@@ -37,7 +48,6 @@ util_set_vars() {
         echo "'tup' installed, but not set up."
         if util_user_consent "Would you like set up 'tup' now?"; then
           util_make_setup_tup
-          util_vars[use_tup]=1
         else
           echo "Run 'make setup-tup' if you want to use 'tup'."
         fi
@@ -78,6 +88,24 @@ util_compile_test_spec() {
   fi
 }
 
+util_use_threads() {
+  (( util_vars[num_threads] != "0" ))
+}
+
+util_get_threads() {
+  echo "${util_vars[num_threads]}"
+}
+
+util_set_threads() {
+  case $(uname -s) in
+    "Darwin") util_vars[num_threads]=$(sysctl -n hw.logicalcpu) ;;
+    "Linux") util_vars[num_threads]=$(nproc) ;;
+    *)
+      echo "Unsure how to get logical CPUs. Defaulting to 1."
+      util_vars[num_threads]="1" ;;
+  esac
+}
+
 util_use_tup() {
   (( util_vars[use_tup] == 1 ))
 }
@@ -104,7 +132,6 @@ util_user_consent() {
     *) return 1 ;;
   esac
 }
-
 
 util_install_desired_mi() {
   if (( util_vars[bootstrapped] == 1 )); then
@@ -162,7 +189,9 @@ util_make_install() {
 
 util_make_setup_tup() {
   echo "Setting up 'tup'..."
-  make -C "$DIR" setup-tup || {
+  if make -C "$DIR" setup-tup; then
+    util_vars[use_tup]=1
+  else
     echo "Setting up 'tup' failed. Continuing without 'tup'."
-  }
+  fi
 }
