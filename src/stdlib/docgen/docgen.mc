@@ -11,20 +11,27 @@
 -- assuming you want all the files in miking-lang.github.io/docs/stdlib/ and
 -- that entry.mc is the entry point of the stdlib.
 -- ```
--- ./mi-doc-gen entry.mc --format mdx --output-folder miking-lang.github.io/docs/stdlib --url-prefix "/docs/stdlib" --depth 0
+-- mi docgen ~/.local/lib/mcore/stdlib/ --format mdx --out-dir miking-lang.github.io/docs/stdlib --url-prefix "/docs/stdlib/"
 -- ```
 -- For more details about each option, see options/options.mc
 
 include "./execution-context.mc"
 
 let docgen : DocGenOptions -> () = lam opt.
-    let execCtx = execContextNew opt in
-    let execCtx = gen execCtx in
-    let execCtx = parse execCtx in
-    let execCtx = extract execCtx in
-    let execCtx = label execCtx in
-    let execCtx = render execCtx in
-    let execCtx = serve execCtx in
-    ()
+    match execContextNew opt with Some execCtx then
+        recursive let process: ExecutionContext -> ExecutionContext =
+            lam execCtx.
+            let execCtx = gen execCtx in
+            let execCtx = parse execCtx in
+            let execCtx = name execCtx in        
+            let execCtx = render execCtx in
+            match execCtxNext execCtx
+            with Some newExecCtx then process newExecCtx
+            else execCtx
+        in
 
+        let execCtx = process execCtx in
+        let execCtx = serve execCtx in
+        ()
+    else ()
 
