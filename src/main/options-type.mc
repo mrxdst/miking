@@ -34,6 +34,7 @@ type Options = {
   jsTarget : String,
   disableJsGeneralOptimizations : Bool,
   disableJsTCO : Bool,
+  toEcmascript : Bool,
   output : Option String,
   tuneOptions : TuneOptions,
   docgenOptions : DocGenOptions,
