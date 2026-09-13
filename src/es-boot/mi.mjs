@@ -29970,7 +29970,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": e });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1161:46-1161:49>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1160:46-1160:49>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CAddi) {
@@ -29994,11 +29994,11 @@ export default function main(env) {
     } else if (X instanceof CModi) {
       return bin(new ESOMod(undefined));
     } else if (X instanceof CSlli) {
-      return rt($S("$slli"));
+      return bin(new ESOShl(undefined));
     } else if (X instanceof CSrli) {
-      return rt($S("$srli"));
+      return bin(new ESOUShr(undefined));
     } else if (X instanceof CSrai) {
-      return rt($S("$srai"));
+      return bin(new ESOShr(undefined));
     } else if (X instanceof CAddf) {
       return bin(new ESOAdd(undefined));
     } else if (X instanceof CSubf) {
@@ -30021,7 +30021,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": e });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1076:43-1076:46>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1075:43-1075:46>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CEqi) {
@@ -30056,7 +30056,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": new ESECall({ args: $sq([e]), callee: esMember(new ESEGlobal({ name: $S("String") }))($S("fromCodePoint")) }) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1088:22-1088:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1087:22-1087:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CChar2Int) {
@@ -30065,7 +30065,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": new ESECall({ args: $sq([new ESEInt({ value: 0 })]), callee: esMember(e)($S("codePointAt")) }) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1085:22-1085:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1084:22-1084:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CStringIsFloat) {
@@ -30082,7 +30082,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": e });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1151:42-1151:45>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1150:42-1150:45>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CEqsym) {
@@ -30107,7 +30107,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": new ESECall({ args: $sq([e, new ESEInt({ value: 0 })]), callee: new ESEGlobal({ name: $S("$get") }) }) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1103:22-1103:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1102:22-1102:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CTail) {
@@ -30118,7 +30118,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": new ESEBin({ op: new ESOEq(undefined), lhs: new ESECall({ args: $sq([e]), callee: new ESEGlobal({ name: $S("$len") }) }), rhs: new ESEInt({ value: 0 }) }) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1108:22-1108:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1107:22-1107:25>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CMap) {
@@ -30188,7 +30188,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": new ESECall({ args: $sq([new ESECall({ args: $sq([e]), callee: new ESEGlobal({ name: $S("$jsStr") }) }), new ESECall({ args: $sq([new ESEGlobal({ name: $S("$jsStr") })]), callee: esMember(new ESECall({ args: $sq([e_1]), callee: new ESEGlobal({ name: $S("$arr") }) }))($S("map")) })]), callee: esMember(new ESEVar({ id: sp.runtimeEnv }))($S("exec")) }) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1200:22-1200:32>:\nUnmatched pattern: "), len === 1 ? $S("[_]") : len === 0 ? $S("[]") : $S("[_, _, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1199:22-1199:32>:\nUnmatched pattern: "), len === 1 ? $S("[_]") : len === 0 ? $S("[]") : $S("[_, _, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CWallTimeMs) {
@@ -30207,7 +30207,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": esMember(e)($S("v")) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1157:39-1157:42>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1156:39-1156:42>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CTypeOf) {
@@ -30236,7 +30236,7 @@ export default function main(env) {
         return new Some({ "0": sp, "1": esMember(e)($S("rank")) });
       } else {
         const len = $len(sp_1);
-        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1221:44-1221:47>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
+        env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/compile.mc 1220:44-1220:47>:\nUnmatched pattern: "), len === 0 ? $S("[]") : $S("[_, _] ++ _")), "\n")));
         return env.exit(1);
       }
     } else if (X instanceof CTensorShape) {
@@ -72223,11 +72223,11 @@ export default function main(env) {
               } else if (field instanceof CModi) {
                 return new TmConst({ ...carried_1, val: new CInt({ val: carried_2.val % carried_3.val }) });
               } else if (field instanceof CSlli) {
-                return new TmConst({ ...carried_1, val: new CInt({ val: $slli(carried_2.val, carried_3.val) }) });
+                return new TmConst({ ...carried_1, val: new CInt({ val: carried_2.val << carried_3.val }) });
               } else if (field instanceof CSrli) {
-                return new TmConst({ ...carried_1, val: new CInt({ val: $srli(carried_2.val, carried_3.val) }) });
+                return new TmConst({ ...carried_1, val: new CInt({ val: carried_2.val >>> carried_3.val }) });
               } else if (field instanceof CSrai) {
-                return new TmConst({ ...carried_1, val: new CInt({ val: $srai(carried_2.val, carried_3.val) }) });
+                return new TmConst({ ...carried_1, val: new CInt({ val: carried_2.val >> carried_3.val }) });
               } else if (field instanceof CEqi) {
                 return new TmConst({ ...carried_1, val: new CBool({ val: carried_2.val === carried_3.val }) });
               } else if (field instanceof CNeqi) {
@@ -97009,20 +97009,8 @@ function $mapi(f, s) {
   return $sq(out);
 }
 
-function $slli(a, b) {
-  return $fromBig(BigInt.asIntN(63, BigInt(a) << BigInt(b)));
-}
-
 function $snoc(s, v) {
   return $cat(s, $sq([v]));
-}
-
-function $srai(a, b) {
-  return $fromBig(BigInt.asIntN(63, BigInt(a)) >> BigInt(b));
-}
-
-function $srli(a, b) {
-  return $fromBig(BigInt.asUintN(63, BigInt(a)) >> BigInt(b));
 }
 
 function $tGet(t, idx) {
@@ -97128,16 +97116,6 @@ function $tSlice(t, sliceSeq) {
   const shape = rank > 0 ? t.shape.slice(slice.length) : [];
   return { data: t.data, shape: shape, rank: rank,
            offset: offset, size: $tSize(shape) };
-}
-
-function $fromBig(x) {
-  const n = Number(x);
-  if (!Number.isSafeInteger(n)) {
-    throw new RangeError(
-      "ecmascript backend: integer " + x +
-      " exceeds the 2^53 range representable by a JS number");
-  }
-  return n;
 }
 
 function $roundfi(x) {
