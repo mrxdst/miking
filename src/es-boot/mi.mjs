@@ -28580,75 +28580,14 @@ export default function main(env) {
     }
     return { ...{ ...{ ...inner, used: $foldl(a => a_1 => release(a, a_1), inner.used, inner.declared) }, next: outer.next }, declared: outer.declared };
   }
-  const esRuntimeFile = $cat(stdlibLoc, $S("/ecmascript/runtime/mexpr.mjs"));
-  function esRuntimeSections(_) {
-    const lines = strSplit($S("\n"), $S(env.readFile($jsStr(esRuntimeFile))));
-    function go(lines_1, open, acc) {
-      while (true) {
-        if ($len(lines_1) >= 1) {
-          const elem = $get(lines_1, 0);
-          const x = $splitAt(lines_1, 1)[1];
-          const l = elem;
-          const rest = x;
-          const t = strTrim(l);
-          function matchBody(_) {
-            const _target_4 = strStartsWith($S("//!intrinsic"))(t);
-            if (_target_4) {
-              const _target_5 = filter(w => not($len(w) === 0), strSplit($S(" "), t));
-              if ($len(_target_5) >= 2) {
-                const elem_1 = $get(_target_5, 1);
-                const x_1 = $splitAt(_target_5, 2)[1];
-                return go(rest, new Some({ "0": elem_1, "1": x_1, "2": $sq([]) }), acc);
-              } else {
-                return env.error($jsStr($cat($S("malformed //!intrinsic marker: "), t)));
-              }
-            } else {
-              return go(rest, open, acc);
-            }
-          }
-          if (open instanceof Some) {
-            const carried = open.v;
-            const name = carried[0];
-            const deps = carried[1];
-            const buf = carried[2];
-            const _target_4 = strStartsWith($S("//!end"))(t);
-            if (_target_4) {
-              const _arg = new None(undefined);
-              const _arg_1 = mapInsert(name, { code: strJoin($S("\n"), buf), deps: deps }, acc);
-              lines_1 = rest;
-              open = _arg;
-              acc = _arg_1;
-              continue;
-            } else {
-              const _arg = new Some({ "0": name, "1": deps, "2": $snoc(buf, l) });
-              const _arg_1 = acc;
-              lines_1 = rest;
-              open = _arg;
-              acc = _arg_1;
-              continue;
-            }
-          } else {
-            return matchBody(undefined);
-          }
-        } else {
-          function matchBody(_) {
-            return acc;
-          }
-          if (open instanceof Some) {
-            return env.error($jsStr($cat($S("unterminated //!intrinsic section: "), open.v[0])));
-          } else {
-            return matchBody(undefined);
-          }
-        }
-      }
-    }
-    return go(lines, new None(undefined), mapEmpty(cmpString));
-  }
+  const esRuntimeIntrinsics = $sq([{ deps: $sq([]), name: $S("$roundfi"), source: $S("function $roundfi(x) {\n  return x < 0 ? -Math.round(-x) : Math.round(x);\n}") }, { deps: $sq([$S("$sq")]), name: $S("$S"), source: $S("function $S(s) {\n  return $sq([...s]);\n}") }, { deps: $sq([$S("$arr")]), name: $S("$jsStr"), source: $S("function $jsStr(s) {\n  return $arr(s).join(\"\");\n}") }, { deps: $sq([]), name: $S("$f2s"), source: $S("function $f2s(x) {\n  if (Number.isNaN(x)) return \"nan\";\n  if (x === Infinity) return \"inf\";\n  if (x === -Infinity) return \"-inf\";\n  const P = 12;\n  let s;\n  if (x === 0) {\n    s = Object.is(x, -0) ? \"-0\" : \"0\";\n  } else {\n    const e = Number(x.toExponential(P - 1).split(\"e\")[1]);\n    if (e < -4 || e >= P) {\n      let [m, ex] = x.toExponential(P - 1).split(\"e\");\n      if (m.indexOf(\".\") >= 0) m = m.replace(/0+$/, \"\").replace(/\\.$/, \"\");\n      let d = ex.slice(1);\n      if (d.length < 2) d = \"0\" + d;\n      s = m + \"e\" + ex[0] + d;\n    } else {\n      s = x.toFixed(Math.max(0, P - 1 - e));\n      if (s.indexOf(\".\") >= 0) s = s.replace(/0+$/, \"\").replace(/\\.$/, \"\");\n    }\n  }\n  return /[.e]/.test(s) ? s : s + \".\";\n}") }, { deps: $sq([$S("$f2s"), $S("$S")]), name: $S("$float2string"), source: $S("function $float2string(x) {\n  return $S($f2s(x));\n}") }, { deps: $sq([$S("$jsStr")]), name: $S("$string2float"), source: $S("function $string2float(s) {\n  return parseFloat($jsStr(s));\n}") }, { deps: $sq([$S("$jsStr")]), name: $S("$stringIsFloat"), source: $S("function $stringIsFloat(s) {\n  const t = $jsStr(s);\n  return t.length > 0 && !Number.isNaN(Number(t));\n}") }, { deps: $sq([]), name: $S("$gensym"), source: $S("let $symCounter = 0;\nfunction $gensym() {\n  $symCounter += 1;\n  return $symCounter;\n}") }, { deps: $sq([]), name: $S("$Seq"), source: $S("class $Seq {\n  constructor(a, o, n, l, r) {\n    this.a = a; this.o = o; this.n = n; this.l = l; this.r = r;\n  }\n}") }, { deps: $sq([$S("$Seq")]), name: $S("$col"), source: $S("function $col(s) {\n  if (s.a !== null) return s;\n  const dst = new Array(s.n);\n  let i = 0;\n  const st = [s.r, s.l];\n  while (st.length !== 0) {\n    const t = st.pop();\n    if (t.a !== null) {\n      const a = t.a, o = t.o, n = t.n;\n      for (let k = 0; k < n; k++) dst[i++] = a[o + k];\n    } else {\n      st.push(t.r); st.push(t.l);\n    }\n  }\n  s.a = dst; s.o = 0; s.l = null; s.r = null;\n  return s;\n}") }, { deps: $sq([$S("$Seq")]), name: $S("$sq"), source: $S("function $sq(a) {\n  return new $Seq(a, 0, a.length, null, null);\n}") }, { deps: $sq([$S("$col")]), name: $S("$arr"), source: $S("function $arr(s) {\n  const t = $col(s);\n  return t.o === 0 && t.n === t.a.length ? t.a : t.a.slice(t.o, t.o + t.n);\n}") }, { deps: $sq([$S("$Seq")]), name: $S("$len"), source: $S("function $len(s) {\n  return s.n;\n}") }, { deps: $sq([$S("$col")]), name: $S("$get"), source: $S("function $get(s, i) {\n  return s.a !== null ? s.a[s.o + i] : $col(s).a[i];\n}") }, { deps: $sq([$S("$Seq")]), name: $S("$cat"), source: $S("function $cat(x, y) {\n  if (x.n === 0) return y;\n  if (y.n === 0) return x;\n  return new $Seq(null, 0, x.n + y.n, x, y);\n}") }, { deps: $sq([$S("$cat"), $S("$sq")]), name: $S("$cons"), source: $S("function $cons(v, s) {\n  return $cat($sq([v]), s);\n}") }, { deps: $sq([$S("$cat"), $S("$sq")]), name: $S("$snoc"), source: $S("function $snoc(s, v) {\n  return $cat(s, $sq([v]));\n}") }, { deps: $sq([$S("$Seq"), $S("$col"), $S("$sq")]), name: $S("$sub"), source: $S("function $sub(s, off, cnt) {\n  if (s.n === 0) return s;\n  const start = Math.max(0, Math.min(off, s.n));\n  const n = Math.max(0, Math.min(cnt, s.n - start));\n  if (n === 0) return $sq([]);\n  const t = $col(s);\n  return new $Seq(t.a, t.o + start, n, null, null);\n}") }, { deps: $sq([$S("$sub")]), name: $S("$tail"), source: $S("function $tail(s) {\n  return $sub(s, 1, s.n - 1);\n}") }, { deps: $sq([$S("$sub")]), name: $S("$splitAt"), source: $S("function $splitAt(s, i) {\n  return { \"0\": $sub(s, 0, i), \"1\": $sub(s, i, s.n - i) };\n}") }, { deps: $sq([$S("$sub")]), name: $S("$subsequence"), source: $S("function $subsequence(s, off, len) {\n  return $sub(s, off, len);\n}") }, { deps: $sq([$S("$arr"), $S("$sq")]), name: $S("$set"), source: $S("function $set(s, i, v) {\n  const out = $arr(s).slice();\n  out[i] = v;\n  return $sq(out);\n}") }, { deps: $sq([$S("$sq")]), name: $S("$create"), source: $S("function $create(n, f) {\n  const out = new Array(n);\n  for (let i = 0; i < n; i++) out[i] = f(i);\n  return $sq(out);\n}") }, { deps: $sq([$S("$col"), $S("$sq")]), name: $S("$map"), source: $S("function $map(f, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  const out = new Array(n);\n  for (let i = 0; i < n; i++) out[i] = f(a[o + i]);\n  return $sq(out);\n}") }, { deps: $sq([$S("$col"), $S("$sq")]), name: $S("$mapi"), source: $S("function $mapi(f, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  const out = new Array(n);\n  for (let i = 0; i < n; i++) out[i] = f(i)(a[o + i]);\n  return $sq(out);\n}") }, { deps: $sq([$S("$col")]), name: $S("$iter"), source: $S("function $iter(f, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  for (let i = 0; i < n; i++) f(a[o + i]);\n  return undefined;\n}") }, { deps: $sq([$S("$col")]), name: $S("$iteri"), source: $S("function $iteri(f, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  for (let i = 0; i < n; i++) f(i)(a[o + i]);\n  return undefined;\n}") }, { deps: $sq([$S("$col")]), name: $S("$foldl"), source: $S("function $foldl(f, acc, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  for (let i = 0; i < n; i++) acc = f(acc)(a[o + i]);\n  return acc;\n}") }, { deps: $sq([$S("$col")]), name: $S("$foldr"), source: $S("function $foldr(f, acc, s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  for (let i = n - 1; i >= 0; i--) acc = f(a[o + i])(acc);\n  return acc;\n}") }, { deps: $sq([$S("$col"), $S("$sq")]), name: $S("$rev"), source: $S("function $rev(s) {\n  const t = $col(s), a = t.a, o = t.o, n = t.n;\n  const out = new Array(n);\n  for (let i = 0; i < n; i++) out[i] = a[o + n - 1 - i];\n  return $sq(out);\n}") }, { deps: $sq([]), name: $S("$tIdx"), source: $S("function $tIdx(shape, idx) {\n  let ofs = 0;\n  let mul = 1;\n  for (let k = shape.length - 1; k >= idx.length; k--) mul *= shape[k];\n  for (let k = idx.length - 1; k >= 0; k--) {\n    ofs += mul * idx[k];\n    mul *= shape[k];\n  }\n  return ofs;\n}") }, { deps: $sq([]), name: $S("$tSize"), source: $S("function $tSize(shape) {\n  let n = 1;\n  for (let i = 0; i < shape.length; i++) n *= shape[i];\n  return n;\n}") }, { deps: $sq([$S("$tSize"), $S("$arr"), $S("$sq")]), name: $S("$tCreate"), source: $S("function $tCreate(shapeSeq, f) {\n  const shape = $arr(shapeSeq);\n  const size = $tSize(shape);\n  const rank = shape.length;\n  const data = new Array(size);\n  for (let i = 0; i < size; i++) {\n    const idx = new Array(rank);\n    let rem = i;\n    for (let d = rank - 1; d >= 0; d--) {\n      idx[d] = rem % shape[d];\n      rem = (rem - idx[d]) / shape[d];\n    }\n    data[i] = f($sq(idx));\n  }\n  return { data: data, shape: shape, rank: rank, offset: 0, size: size };\n}") }, { deps: $sq([$S("$tSize"), $S("$arr")]), name: $S("$tUninit"), source: $S("function $tUninit(shapeSeq) {\n  const shape = $arr(shapeSeq);\n  const size = $tSize(shape);\n  return { data: new Array(size).fill(0), shape: shape,\n           rank: shape.length, offset: 0, size: size };\n}") }, { deps: $sq([$S("$tIdx"), $S("$arr")]), name: $S("$tGet"), source: $S("function $tGet(t, idx) {\n  return t.data[$tIdx(t.shape, $arr(idx)) + t.offset];\n}") }, { deps: $sq([$S("$tIdx"), $S("$arr")]), name: $S("$tSet"), source: $S("function $tSet(t, idx, v) {\n  t.data[$tIdx(t.shape, $arr(idx)) + t.offset] = v;\n}") }, { deps: $sq([$S("$sq")]), name: $S("$tShape"), source: $S("function $tShape(t) {\n  return $sq(t.shape);\n}") }, { deps: $sq([]), name: $S("$tLinGet"), source: $S("function $tLinGet(t, i) {\n  return t.data[i + t.offset];\n}") }, { deps: $sq([]), name: $S("$tLinSet"), source: $S("function $tLinSet(t, i, v) {\n  t.data[i + t.offset] = v;\n}") }, { deps: $sq([$S("$arr")]), name: $S("$tReshape"), source: $S("function $tReshape(t, shapeSeq) {\n  const shape = $arr(shapeSeq);\n  return { data: t.data, shape: shape, rank: shape.length,\n           offset: t.offset, size: t.size };\n}") }, { deps: $sq([$S("$tIdx"), $S("$tSize"), $S("$arr")]), name: $S("$tSlice"), source: $S("function $tSlice(t, sliceSeq) {\n  const slice = $arr(sliceSeq);\n  if (slice.length === 0) return t;\n  const offset = $tIdx(t.shape, slice) + t.offset;\n  const rank = t.rank - slice.length;\n  const shape = rank > 0 ? t.shape.slice(slice.length) : [];\n  return { data: t.data, shape: shape, rank: rank,\n           offset: offset, size: $tSize(shape) };\n}") }, { deps: $sq([$S("$tIdx"), $S("$tSize")]), name: $S("$tSub"), source: $S("function $tSub(t, ofs, len) {\n  const offset = $tIdx(t.shape, [ofs]) + t.offset;\n  const shape = t.shape.slice();\n  shape[0] = len;\n  return { data: t.data, shape: shape, rank: t.rank,\n           offset: offset, size: $tSize(shape) };\n}") }, { deps: $sq([]), name: $S("$tCopy"), source: $S("function $tCopy(t) {\n  return { data: t.data.slice(t.offset, t.offset + t.size), shape: t.shape,\n           rank: t.rank, offset: 0, size: t.size };\n}") }, { deps: $sq([$S("$tSlice"), $S("$sq")]), name: $S("$tIterSlice"), source: $S("function $tIterSlice(f, t) {\n  if (t.rank === 0) { f(0)(t); return undefined; }\n  for (let i = 0; i < t.shape[0]; i++) f(i)($tSlice(t, $sq([i])));\n  return undefined;\n}") }, { deps: $sq([]), name: $S("$tEq"), source: $S("function $tEq(eq, t1, t2) {\n  if (t1.rank !== t2.rank) return false;\n  for (let i = 0; i < t1.rank; i++) if (t1.shape[i] !== t2.shape[i]) return false;\n  for (let i = 0; i < t1.size; i++) {\n    if (!eq(t1.data[i + t1.offset])(t2.data[i + t2.offset])) return false;\n  }\n  return true;\n}") }, { deps: $sq([$S("$tCreate"), $S("$tGet"), $S("$sq"), $S("$arr")]), name: $S("$tTranspose"), source: $S("function $tTranspose(t, d0, d1) {\n  const shape = t.shape.slice();\n  const tmp = shape[d0];\n  shape[d0] = shape[d1];\n  shape[d1] = tmp;\n  return $tCreate($sq(shape), (idx) => {\n    const j = $arr(idx).slice();\n    const s = j[d0];\n    j[d0] = j[d1];\n    j[d1] = s;\n    return $tGet(t, $sq(j));\n  });\n}") }, { deps: $sq([$S("$jsStr"), $S("$S"), $S("$tGet"), $S("$tSlice"), $S("$sq")]), name: $S("$tToString"), source: $S("function $tToString(el, t) {\n  const recur = (indent, t) => {\n    if (t.rank === 0) return $jsStr(el($tGet(t, $sq([]))));\n    const n = t.shape[0];\n    const parts = [];\n    if (t.rank === 1) {\n      for (let i = 0; i < n; i++) parts.push(recur(\"\", $tSlice(t, $sq([i]))));\n      return \"[\" + parts.join(\", \") + \"]\";\n    }\n    const ni = indent + \"\\t\";\n    for (let i = 0; i < n; i++) parts.push(recur(ni, $tSlice(t, $sq([i]))));\n    return \"[\\n\" + ni + parts.join(\",\\n\" + ni) + \"\\n\" + indent + \"]\";\n  };\n  return $S(recur(\"\", t));\n}") }, { deps: $sq([]), name: $S("$ref"), source: $S("function $ref(x) { return { v: x }; }") }, { deps: $sq([]), name: $S("$modref"), source: $S("function $modref(r, v) { r.v = v; }") }, { deps: $sq([]), name: $S("$conTag"), source: $S("const $tagMap = new Map();\nlet $tagCounter = 0;\nfunction $conTag(x) {\n  if (x === null || typeof x !== \"object\") return 0;\n  let t = $tagMap.get(x.constructor);\n  if (t === undefined) {\n    $tagCounter += 1;\n    t = $tagCounter;\n    $tagMap.set(x.constructor, t);\n  }\n  return t;\n}") }, { deps: $sq([$S("$S")]), name: $S("$readBytesResult"), source: $S("function $readBytesResult(pair) {\n  return { \"0\": $S(pair[0]), \"1\": pair[1] };\n}") }, { deps: $sq([$S("$S")]), name: $S("$typeOf"), source: $S("function $typeOf(x) {\n  if (Array.isArray(x)) return $S(\"Sequence\");\n  if (x === null || x === undefined) return $S(\"Unit\");\n  if (typeof x === \"object\") {\n    return $S(x.constructor === Object ? \"Record\" : x.constructor.name);\n  }\n  return $S(typeof x);\n}") }, { deps: $sq([]), name: $S("$unsupported"), source: $S("function $unsupported(name) {\n  throw new Error(\"ecmascript backend: '\" + name + \"' is not implemented\");\n}") }, { deps: $sq([]), name: $S("$noExternal"), source: $S("function $noExternal(name) {\n  const fail = () => {\n    throw new Error(\"no default implementation for external '\" + name +\n                    \"', and the environment does not provide one\");\n  };\n  return new Proxy(fail, { get: fail });\n}") }, { deps: $sq([]), name: $S("$ext_externalExp"), source: $S("function $ext_externalExp(env) { return Math.exp; }") }, { deps: $sq([]), name: $S("$ext_externalLog"), source: $S("function $ext_externalLog(env) { return Math.log; }") }, { deps: $sq([]), name: $S("$ext_externalAtan"), source: $S("function $ext_externalAtan(env) { return Math.atan; }") }, { deps: $sq([]), name: $S("$ext_externalSin"), source: $S("function $ext_externalSin(env) { return Math.sin; }") }, { deps: $sq([]), name: $S("$ext_externalCos"), source: $S("function $ext_externalCos(env) { return Math.cos; }") }, { deps: $sq([]), name: $S("$ext_externalAtan2"), source: $S("function $ext_externalAtan2(env) { return Math.atan2; }") }, { deps: $sq([]), name: $S("$ext_externalPow"), source: $S("function $ext_externalPow(env) { return Math.pow; }") }, { deps: $sq([]), name: $S("$ext_externalSqrt"), source: $S("function $ext_externalSqrt(env) { return Math.sqrt; }") }, { deps: $sq([]), name: $S("$ext_externalLogCombination"), source: $S("function $ext_externalLogCombination(env) {\n  return (n, k) => {\n    if (k < 0 || k > n) return -Infinity;\n    const m = Math.min(k, n - k);\n    let s = 0;\n    for (let i = 1; i <= m; i++) s += Math.log(n - m + i) - Math.log(i);\n    return s;\n  };\n}") }, { deps: $sq([]), name: $S("$ext_externalFileExists"), source: $S("function $ext_externalFileExists(env) { return (path) => env.fileExists(path); }") }, { deps: $sq([]), name: $S("$ext_externalDeleteFile"), source: $S("function $ext_externalDeleteFile(env) { return (path) => { env.deleteFile(path); }; }") }, { deps: $sq([]), name: $S("$ext_externalAtomicMake"), source: $S("function $ext_externalAtomicMake(env) { return (v) => ({ v: v }); }") }, { deps: $sq([]), name: $S("$ext_externalAtomicGet"), source: $S("function $ext_externalAtomicGet(env) { return (r) => r.v; }") }, { deps: $sq([]), name: $S("$ext_externalAtomicExchange"), source: $S("function $ext_externalAtomicExchange(env) {\n  return (r, v) => { const old = r.v; r.v = v; return old; };\n}") }, { deps: $sq([]), name: $S("$ext_externalAtomicCAS"), source: $S("function $ext_externalAtomicCAS(env) {\n  return (r, seen, v) => {\n    if (r.v !== seen) return false;\n    r.v = v;\n    return true;\n  };\n}") }, { deps: $sq([]), name: $S("$ext_externalAtomicFetchAndAdd"), source: $S("function $ext_externalAtomicFetchAndAdd(env) {\n  return (r, n) => { const old = r.v; r.v = old + n; return old; };\n}") }]);
+  const esRuntimeByName = $foldl(acc => i => {
+    return mapInsert(i.name, i, acc);
+  }, mapEmpty(cmpString), esRuntimeIntrinsics);
   function esRuntimeEmit(used) {
     if ($len(used) === 0) {
       return $sq([]);
     } else {
-      const sections = esRuntimeSections(undefined);
       function close(pending, seen) {
         while (true) {
           if ($len(pending) >= 1) {
@@ -28663,7 +28602,7 @@ export default function main(env) {
               seen = _arg;
               continue;
             } else {
-              const _target_5 = mapLookup(n, sections);
+              const _target_5 = mapLookup(n, esRuntimeByName);
               if (_target_5 instanceof Some) {
                 const _arg = setInsert(n, seen);
                 pending = $cat(_target_5.v.deps, rest);
@@ -28680,8 +28619,8 @@ export default function main(env) {
       }
       const names = setToSeq(close(used, setEmpty(cmpString)));
       return join($sq([$S("\n// ---------------------------------------------------------------\n"), $S("// MExpr runtime intrinsics.\n"), $S("// ---------------------------------------------------------------\n\n"), strJoin($S("\n\n"), $map(n => {
-        const _target_4 = mapFindExn(n, sections);
-        return _target_4.code;
+        const _target_4 = mapFindExn(n, esRuntimeByName);
+        return _target_4.source;
       }, names)), $S("\n")]));
     }
   }
@@ -30328,7 +30267,7 @@ export default function main(env) {
         } else if (X instanceof ESFBBlock) {
           return join($map(a => esGlobalsStmt(a), X.v.stmts));
         } else {
-          env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/runtime.mc 40:9-41:20>:\nUnmatched pattern: "), $S("!_")), "\n")));
+          env.print($jsStr($snoc($cat($S("ERROR <./src/stdlib/ecmascript/runtime.mc 33:9-34:20>:\nUnmatched pattern: "), $S("!_")), "\n")));
           return env.exit(1);
         }
       } else {
@@ -31908,7 +31847,7 @@ export default function main(env) {
   function compileESProg(scrut) {
     const runtimeEnv = nameSym($S("env"));
     const externalsName = nameSym($S("externals"));
-    const defaults = setOfSeq(cmpString, filter(a => isPrefix(a_1 => a_2 => a_1 === a_2, $S("$ext_"), a), mapKeys(esRuntimeSections(undefined))));
+    const defaults = setOfSeq(cmpString, filter(a => isPrefix(a_1 => a_2 => a_1 === a_2, $S("$ext_"), a), mapKeys(esRuntimeByName)));
     const ctx = { ...{ ...{ ...esCompileCtxEmpty, runtimeEnv: runtimeEnv }, externalsName: externalsName }, externalDefaults: defaults };
     const _target_4 = compileStmts(ctx, new ESCDiscard(undefined), esInlineJoinPoints(setEmpty(a => a_1 => nameCmp(a, a_1)), scrut));
     const stmts = _target_4[1];
