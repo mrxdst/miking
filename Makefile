@@ -82,6 +82,19 @@ cheat:
 
 build/$(MI_CHEAT_NAME): $(if $(wildcard build/$(MI_CHEAT_NAME)),,cheat)
 
+# Bootstrapping the `mi` executable using es-boot
+
+.PHONY: es-boot
+es-boot:
+	$(SET_STDLIB) $(SET_OCAMLPATH) node --stack-size=4096 --max-old-space-size=16384 src/es-boot/mi-node.mjs compile src/main/mi.mc --native-parser --output build/$(MI_NAME)
+
+# Self recompile es-boot, might need to run multiple times to reach fixed point.
+
+.PHONY: es-reboot
+es-reboot:
+	$(SET_STDLIB) $(SET_OCAMLPATH) node --stack-size=4096 --max-old-space-size=16384 src/es-boot/mi-node.mjs compile src/main/mi.mc --to-es --output build/$(MI_NAME).mjs
+	sed "s|$(CURDIR)|.|g" build/$(MI_NAME).mjs > src/es-boot/mi.mjs
+
 # Umbrella install/uninstall targets, for installing and uninstalling everything
 
 .PHONY: install
