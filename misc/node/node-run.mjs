@@ -8,7 +8,7 @@
 // Usage: node misc/scripts/es-node-run.mjs <module.mjs> [args...]
 
 import { pathToFileURL } from "node:url";
-import { nodeEnv } from "../../src/stdlib/ecmascript/hosts/node.mjs";
+import { nodeEnv } from "./node-env.mjs";
 
 const target = process.argv[2];
 if (target === undefined) {
